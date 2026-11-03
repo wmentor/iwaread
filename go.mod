@@ -1,3 +1,3 @@
-module github.com/wmentor/ireader
+module github.com/wmentor/iwaread
 
 go 1.27.3
