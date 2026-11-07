@@ -28,7 +28,7 @@ func snappyUncompressBlock(input []byte) ([]byte, error) {
 					return nil, fmt.Errorf("snappy: truncated literal length")
 				}
 				litLen = 0
-				for i := 0; i < extra; i++ {
+				for i := range extra {
 					litLen |= int(input[ip+i]) << (8 * i)
 				}
 				ip += extra
