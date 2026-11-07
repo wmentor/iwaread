@@ -292,9 +292,9 @@ func getHeadingLevel(styleIdentifier string) int {
 	// Heading N -> level N
 	if strings.Contains(lower, "paragraphstyle-heading") {
 		// Find "heading" and extract the number after it
-		idx := strings.Index(lower, "heading")
-		if idx != -1 {
-			rest := lower[idx+7:] // skip "heading"
+		_, after, ok := strings.Cut(lower, "heading")
+		if ok {
+			rest := after // skip "heading"
 			// Skip spaces
 			rest = strings.TrimLeft(rest, " ")
 			// Extract first digit

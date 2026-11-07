@@ -32,7 +32,7 @@ func ReadUvarintReader(r io.Reader) (uint64, error) {
 	var x uint64
 	var s uint
 	buf := make([]byte, 1)
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		_, err := io.ReadFull(r, buf)
 		if err != nil {
 			return 0, err

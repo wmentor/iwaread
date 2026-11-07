@@ -17,7 +17,7 @@ const (
 type RawField struct {
 	No    int
 	Wire  int
-	Value interface{} // uint64 for varint, []byte for bytes/fixed64/fixed32
+	Value any // uint64 for varint, []byte for bytes/fixed64/fixed32
 }
 
 // RawMessage is a schema-less protobuf message.
