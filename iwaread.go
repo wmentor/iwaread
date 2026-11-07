@@ -2,6 +2,7 @@ package iwaread
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 
@@ -365,11 +366,23 @@ func formatTextRunWithTables(store *tsp.ObjectStore, charStyleTable, smartFieldT
 				if end+2 < len(text) && text[end] == 0xEF && text[end+1] == 0xBF && text[end+2] == 0xBC {
 					break
 				}
-				endURL := getHyperlinkURLAt(store, smartFieldTable, endRunePos)
+				endURL := getHyperlinkURL(store, smartFieldTable, endRunePos)
 				if endURL != hyperlinkURL {
 					break
 				}
-				end++
+				// Advance by one rune (handle multi-byte UTF-8)
+				charLen := 1
+				if end < len(text) {
+					ch := text[end]
+					if ch >= 0xC0 && ch < 0xE0 {
+						charLen = 2
+					} else if ch >= 0xE0 && ch < 0xF0 {
+						charLen = 3
+					} else if ch >= 0xF0 {
+						charLen = 4
+					}
+				}
+				end += charLen
 				endRunePos++
 			}
 
@@ -377,7 +390,7 @@ func formatTextRunWithTables(store *tsp.ObjectStore, charStyleTable, smartFieldT
 			sb.WriteString("[")
 			sb.WriteString(text[i:end])
 			sb.WriteString("](")
-			sb.WriteString(hyperlinkURL)
+			sb.WriteString(normalizeHyperlinkURL(hyperlinkURL))
 			sb.WriteString(")")
 
 			i = end
@@ -386,10 +399,23 @@ func formatTextRunWithTables(store *tsp.ObjectStore, charStyleTable, smartFieldT
 			continue
 		}
 
+		// Determine byte length of current UTF-8 character
+		charLen := 1
+		if i < len(text) {
+			ch := text[i]
+			if ch >= 0xC0 && ch < 0xE0 {
+				charLen = 2
+			} else if ch >= 0xE0 && ch < 0xF0 {
+				charLen = 3
+			} else if ch >= 0xF0 {
+				charLen = 4
+			}
+		}
+
 		// Check character style change
 		currentStyle := getEffectiveObject(charStyleTable, runePos)
 		nextStyle := uint64(0)
-		if i+1 < len(text) {
+		if i+charLen < len(text) {
 			// Calculate next rune position
 			nextRunePos := runePos + 1
 			nextStyle = getEffectiveObject(charStyleTable, nextRunePos)
@@ -397,7 +423,7 @@ func formatTextRunWithTables(store *tsp.ObjectStore, charStyleTable, smartFieldT
 
 		if currentStyle != nextStyle {
 			// Flush current run
-			runEnd := i + 1
+			runEnd := i + charLen
 			runText := text[runStart:runEnd]
 			if runText != "" {
 				formatted := applyCharacterFormatting(store, currentStyle, runText)
@@ -406,7 +432,7 @@ func formatTextRunWithTables(store *tsp.ObjectStore, charStyleTable, smartFieldT
 			runStart = runEnd
 		}
 
-		i++
+		i += charLen
 		runePos++
 	}
 
@@ -462,7 +488,7 @@ func formatTextRun(store *tsp.ObjectStore, charStyleTable, smartFieldTable *base
 			sb.WriteString("[")
 			sb.WriteString(text[i:end])
 			sb.WriteString("](")
-			sb.WriteString(hyperlinkURL)
+			sb.WriteString(normalizeHyperlinkURL(hyperlinkURL))
 			sb.WriteString(")")
 
 			i = end
@@ -502,6 +528,39 @@ func formatTextRun(store *tsp.ObjectStore, charStyleTable, smartFieldTable *base
 	return sb.String()
 }
 
+func normalizeHyperlinkURL(rawURL string) string {
+	// Check if this is a VS Code file+ URL
+	if !strings.HasPrefix(rawURL, "https://file+.vscode-resource.vscode-cdn.net/") {
+		return rawURL
+	}
+
+	// Extract the local path after the VS Code prefix
+	localPath := strings.TrimPrefix(rawURL, "https://file+.vscode-resource.vscode-cdn.net")
+
+	// URL-decode the path
+	decoded, err := url.PathUnescape(localPath)
+	if err != nil {
+		decoded = localPath
+	}
+
+	// Find the repository root in the path
+	// Look for pattern: /github.com/<owner>/<repo>/
+	parts := strings.Split(decoded, "/")
+	for i, part := range parts {
+		if part == "github.com" && i+2 < len(parts) {
+			// Found github.com, next two parts are owner and repo
+			// Return everything after that
+			if i+3 <= len(parts) {
+				relativePath := strings.Join(parts[i+3:], "/")
+				return relativePath
+			}
+		}
+	}
+
+	// If no github.com pattern found, return the original URL
+	return rawURL
+}
+
 func getHyperlinkURL(store *tsp.ObjectStore, table *base.RawMessage, pos int) string {
 	entries, err := table.GetMessages(attrTableEntries)
 	if err != nil {
@@ -516,6 +575,9 @@ func getHyperlinkURL(store *tsp.ObjectStore, table *base.RawMessage, pos int) st
 		objID, ok := tsp.RefID(entry, entryObject)
 		if ok {
 			fieldID = objID
+		} else {
+			// Entry with no object reference marks the end of a smart field run
+			fieldID = 0
 		}
 	}
 	if fieldID == 0 {
