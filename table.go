@@ -245,6 +245,9 @@ func extractTable(store *tsp.ObjectStore, tableInfo *tsp.IwaObject, position int
 		return nil, fmt.Errorf("failed to build string map: %w", err)
 	}
 
+	// Build rich text map (field 17 in DataStore)
+	richTextMap := buildRichTextMap(store, dataStoreMsg)
+
 	// Get tiles (field 3 in DataStore)
 	tilesMsg, err := dataStoreMsg.GetMessage(3)
 	if err != nil || tilesMsg == nil {
@@ -327,7 +330,7 @@ func extractTable(store *tsp.ObjectStore, tableInfo *tsp.IwaObject, position int
 				}
 
 				// Extract cell value
-				cellValue := extractCellValue(int(cellType), flags, cellBuffer[pos+12:pos+12+dataSize], stringMap)
+				cellValue := extractCellValue(int(cellType), flags, cellBuffer[pos+12:pos+12+dataSize], stringMap, richTextMap)
 
 				if int(rowIndex) < rows && col < cols {
 					cells[rowIndex][col] = cellValue
@@ -372,8 +375,82 @@ func buildStringMap(stringTable *tsp.IwaObject) (map[uint32]string, error) {
 	return stringMap, nil
 }
 
+// buildRichTextMap builds a map of rich text IDs to text strings from the rich text table
+func buildRichTextMap(store *tsp.ObjectStore, dataStoreMsg *base.RawMessage) map[uint32]string {
+	richTextMap := make(map[uint32]string)
+
+	// Get rich text table reference (field 17 in DataStore)
+	richTextTableRef, err := dataStoreMsg.GetMessage(17)
+	if err != nil || richTextTableRef == nil {
+		return richTextMap
+	}
+
+	richTextTableID, ok := richTextTableRef.GetVarint(1)
+	if !ok {
+		return richTextMap
+	}
+
+	richTextTable := store.Object(richTextTableID)
+	if richTextTable == nil {
+		return richTextMap
+	}
+
+	// Get entries (field 3)
+	entries, err := richTextTable.Message.GetMessages(3)
+	if err != nil {
+		return richTextMap
+	}
+
+	for _, entry := range entries {
+		// Get key (field 1)
+		key, _ := entry.GetUint(1)
+
+		// Get rich text payload reference (field 9)
+		rtRef, err := entry.GetMessage(9)
+		if err != nil || rtRef == nil {
+			continue
+		}
+
+		rtID, ok := rtRef.GetVarint(1)
+		if !ok {
+			continue
+		}
+
+		// Get the rich text payload object
+		rtObj := store.Object(rtID)
+		if rtObj == nil {
+			continue
+		}
+
+		// Get storage reference (field 1 in RichTextPayloadArchive)
+		storageRef, err := rtObj.Message.GetMessage(1)
+		if err != nil || storageRef == nil {
+			continue
+		}
+
+		storageID, ok := storageRef.GetVarint(1)
+		if !ok {
+			continue
+		}
+
+		// Get the storage object
+		storageObj := store.Object(storageID)
+		if storageObj == nil {
+			continue
+		}
+
+		// Get text from storage (field 3 in StorageArchive)
+		texts := storageObj.Message.GetStrings(3)
+		if len(texts) > 0 {
+			richTextMap[uint32(key)] = texts[0]
+		}
+	}
+
+	return richTextMap
+}
+
 // extractCellValue extracts a cell value from cell data
-func extractCellValue(cellType int, flags uint32, data []byte, stringMap map[uint32]string) string {
+func extractCellValue(cellType int, flags uint32, data []byte, stringMap map[uint32]string, richTextMap map[uint32]string) string {
 	switch cellType {
 	case cellTypeEmpty:
 		return ""
@@ -405,7 +482,27 @@ func extractCellValue(cellType int, flags uint32, data []byte, stringMap map[uin
 		}
 		return ""
 	case cellTypeRichText:
-		// Rich text requires special handling - for now return placeholder
+		// Rich text ID is at the offset determined by flags
+		if flags&cellFlagRichID != 0 && len(data) >= 4 {
+			// Calculate offset to rich text ID by summing sizes of preceding flags
+			offset := 0
+			for _, fs := range flagSizes {
+				if flags&fs.flag != 0 {
+					if fs.flag == cellFlagRichID {
+						// Found the rich text ID
+						if offset+4 <= len(data) {
+							richID := binary.LittleEndian.Uint32(data[offset : offset+4])
+							if str, ok := richTextMap[richID]; ok {
+								return str
+							}
+							return fmt.Sprintf("[rich:%d]", richID)
+						}
+						break
+					}
+					offset += fs.size
+				}
+			}
+		}
 		return "[rich text]"
 	default:
 		return fmt.Sprintf("[type:%d]", cellType)
