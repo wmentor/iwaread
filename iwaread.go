@@ -10,14 +10,14 @@ import (
 	"github.com/wmentor/iwaread/internal/tsp"
 )
 
-// Type IDs
+// Type IDs.
 const (
 	typeTPDocument     = 10000
 	typeStorage        = 2001
 	typeHyperlinkField = 2032
 )
 
-// Storage field numbers
+// Storage field numbers.
 const (
 	storageKind            = 1
 	storageText            = 3
@@ -27,47 +27,47 @@ const (
 	storageTableSmartField = 11
 )
 
-// TPDocument field numbers
+// TPDocument field numbers.
 const (
 	tpDocBodyStorage = 4
 )
 
-// ObjectAttributeTable field numbers
+// ObjectAttributeTable field numbers.
 const (
 	attrTableEntries    = 1
 	entryCharacterIndex = 1
 	entryObject         = 2
 )
 
-// StyleArchive field numbers
+// StyleArchive field numbers.
 const (
 	styleName       = 1
 	styleIdentifier = 2
 )
 
-// ParagraphStyleArchive field numbers
+// ParagraphStyleArchive field numbers.
 const (
 	paraStyleSuper     = 1
 	paraStyleCharProps = 11
 )
 
-// CharacterStyleArchive field numbers
+// CharacterStyleArchive field numbers.
 const (
 	charStyleCharProps = 11
 )
 
-// CharacterStylePropertiesArchive field numbers
+// CharacterStylePropertiesArchive field numbers.
 const (
 	charPropsBold   = 1
 	charPropsItalic = 2
 )
 
-// ParagraphStylePropertiesArchive field numbers
+// ParagraphStylePropertiesArchive field numbers.
 const (
-	paraPropsOutlineLevel = 27
+	paraPropsOutlineLevel = 27 //nolint:unused // maybe will be used later.
 )
 
-// HyperlinkFieldArchive field numbers
+// HyperlinkFieldArchive field numbers.
 const (
 	hyperlinkURL = 2
 )
@@ -238,23 +238,6 @@ func getEffectiveObject(table *base.RawMessage, pos int) uint64 {
 	return value
 }
 
-func getStyleName(store *tsp.ObjectStore, styleID uint64) string {
-	if styleID == 0 {
-		return ""
-	}
-	obj := store.Object(styleID)
-	if obj == nil {
-		return ""
-	}
-	// Style has super at field 1, which has name at field 1
-	super, err := obj.Message.GetMessage(paraStyleSuper)
-	if err != nil || super == nil {
-		return ""
-	}
-	name, _ := super.GetString(styleName)
-	return name
-}
-
 func getStyleIdentifier(store *tsp.ObjectStore, styleID uint64) string {
 	if styleID == 0 {
 		return ""
@@ -307,7 +290,9 @@ func getHeadingLevel(styleIdentifier string) int {
 	return 1
 }
 
-func formatTextRunWithTables(store *tsp.ObjectStore, charStyleTable, smartFieldTable *base.RawMessage, text string, baseRuneOffset int, tableMap map[int]*Table) string {
+func formatTextRunWithTables(store *tsp.ObjectStore, charStyleTable, smartFieldTable *base.RawMessage,
+	text string, baseRuneOffset int, tableMap map[int]*Table,
+) string {
 	if text == "" {
 		return ""
 	}
@@ -440,87 +425,6 @@ func formatTextRunWithTables(store *tsp.ObjectStore, charStyleTable, smartFieldT
 	if runStart < len(text) {
 		runText := text[runStart:]
 		currentStyle := getEffectiveObject(charStyleTable, runePos-len([]rune(runText)))
-		formatted := applyCharacterFormatting(store, currentStyle, runText)
-		sb.WriteString(formatted)
-	}
-
-	return sb.String()
-}
-
-func formatTextRun(store *tsp.ObjectStore, charStyleTable, smartFieldTable *base.RawMessage, text string, baseOffset int) string {
-	if text == "" {
-		return ""
-	}
-
-	var sb strings.Builder
-	runStart := 0
-	i := 0
-
-	for i < len(text) {
-		pos := baseOffset + i
-
-		// Check for hyperlink at current position
-		var hyperlinkURL string
-		if smartFieldTable != nil {
-			hyperlinkURL = getHyperlinkURLAt(store, smartFieldTable, pos)
-		}
-
-		if hyperlinkURL != "" {
-			// Flush current run before hyperlink
-			if runStart < i {
-				runText := text[runStart:i]
-				currentStyle := getEffectiveObject(charStyleTable, baseOffset+runStart)
-				formatted := applyCharacterFormatting(store, currentStyle, runText)
-				sb.WriteString(formatted)
-			}
-
-			// Find end of hyperlink run
-			end := i
-			for end < len(text) {
-				endURL := getHyperlinkURLAt(store, smartFieldTable, baseOffset+end)
-				if endURL != hyperlinkURL {
-					break
-				}
-				end++
-			}
-
-			// Write hyperlink
-			sb.WriteString("[")
-			sb.WriteString(text[i:end])
-			sb.WriteString("](")
-			sb.WriteString(normalizeHyperlinkURL(hyperlinkURL))
-			sb.WriteString(")")
-
-			i = end
-			runStart = end
-			continue
-		}
-
-		// Check character style change
-		currentStyle := getEffectiveObject(charStyleTable, pos)
-		nextStyle := uint64(0)
-		if i+1 < len(text) {
-			nextStyle = getEffectiveObject(charStyleTable, baseOffset+i+1)
-		}
-
-		if currentStyle != nextStyle {
-			// Flush current run
-			runEnd := i + 1
-			runText := text[runStart:runEnd]
-			if runText != "" {
-				formatted := applyCharacterFormatting(store, currentStyle, runText)
-				sb.WriteString(formatted)
-			}
-			runStart = runEnd
-		}
-
-		i++
-	}
-
-	// Flush remaining text
-	if runStart < len(text) {
-		runText := text[runStart:]
-		currentStyle := getEffectiveObject(charStyleTable, baseOffset+runStart)
 		formatted := applyCharacterFormatting(store, currentStyle, runText)
 		sb.WriteString(formatted)
 	}

@@ -6,7 +6,7 @@ else
     TEST_RUNNER := gotestsum --
 endif
 
-all: run/fix run/tidy fmt/sources fmt/imports test/unit check/vet
+all: run/fix run/tidy fmt/sources fmt/imports test/unit check/vet check/lint
 
 test/unit:
 	@echo "clean cache"

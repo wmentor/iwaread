@@ -10,7 +10,7 @@ import (
 	"github.com/wmentor/iwaread/internal/tsp"
 )
 
-// Type IDs for table-related objects
+// Type IDs for table-related objects.
 const (
 	typeTableInfo  = 6000 // TST.TableInfoArchive
 	typeTableModel = 6001 // TST.TableModelArchive
@@ -18,7 +18,7 @@ const (
 	typeDataList   = 6005 // TST.TableDataList
 )
 
-// Cell type constants
+// Cell type constants.
 const (
 	cellTypeEmpty    = 0
 	cellTypeSpan     = 1
@@ -33,7 +33,7 @@ const (
 	cellTypeCurrency = 10
 )
 
-// Cell flag constants
+// Cell flag constants.
 const (
 	cellFlagDecimal128       = 0x1
 	cellFlagDouble           = 0x2
@@ -57,7 +57,7 @@ const (
 	cellFlagCommentID        = 0x80000
 )
 
-// Flag sizes in bytes
+// Flag sizes in bytes.
 var flagSizes = []struct {
 	flag uint32
 	size int
@@ -84,7 +84,7 @@ var flagSizes = []struct {
 	{cellFlagCommentID, 4},
 }
 
-// Table represents a table extracted from a Pages document
+// Table represents a table extracted from a Pages document.
 type Table struct {
 	Rows     int
 	Cols     int
@@ -92,13 +92,13 @@ type Table struct {
 	Position int // Position in the text where the table is embedded
 }
 
-// TableAttachment represents a table attachment in the text
+// TableAttachment represents a table attachment in the text.
 type TableAttachment struct {
 	Position int    // Position in the text
 	TableID  uint64 // Table object ID
 }
 
-// extractTables extracts all tables from the document with their positions
+// extractTables extracts all tables from the document with their positions.
 func extractTables(store *tsp.ObjectStore, bodyMsg *base.RawMessage) []Table {
 	var tables []Table
 
@@ -123,7 +123,7 @@ func extractTables(store *tsp.ObjectStore, bodyMsg *base.RawMessage) []Table {
 	return tables
 }
 
-// extractTableAttachments extracts table attachments from body storage
+// extractTableAttachments extracts table attachments from body storage.
 func extractTableAttachments(store *tsp.ObjectStore, bodyMsg *base.RawMessage) []TableAttachment {
 	var attachments []TableAttachment
 
@@ -160,7 +160,7 @@ func extractTableAttachments(store *tsp.ObjectStore, bodyMsg *base.RawMessage) [
 			continue
 		}
 
-		// Check if it's a DrawableAttachment (type 2003)
+		// Check if it's a DrawableAttachment (type 2003).
 		if obj.Type != 2003 {
 			continue
 		}
@@ -195,7 +195,7 @@ func extractTableAttachments(store *tsp.ObjectStore, bodyMsg *base.RawMessage) [
 	return attachments
 }
 
-// extractTable extracts a single table from a TableInfo object
+// extractTable extracts a single table from a TableInfo object.
 func extractTable(store *tsp.ObjectStore, tableInfo *tsp.IwaObject, position int) (*Table, error) {
 	// Get table model reference (field 2)
 	modelRef, err := tableInfo.Message.GetMessage(2)
@@ -213,11 +213,11 @@ func extractTable(store *tsp.ObjectStore, tableInfo *tsp.IwaObject, position int
 		return nil, fmt.Errorf("model object not found")
 	}
 
-	// Get row and column counts
+	// Get row and column counts.
 	rows, _ := model.Message.GetUint(6)
 	cols, _ := model.Message.GetUint(7)
 
-	// Get data store (field 4)
+	// Get data store (field 4).
 	dataStoreMsg, err := model.Message.GetMessage(4)
 	if err != nil || dataStoreMsg == nil {
 		return nil, fmt.Errorf("no data store message")
@@ -254,7 +254,7 @@ func extractTable(store *tsp.ObjectStore, tableInfo *tsp.IwaObject, position int
 		return nil, fmt.Errorf("no tiles message")
 	}
 
-	// Get tile references (field 1 in TileStorage - repeated Tile)
+	// Get tile references (field 1 in TileStorage - repeated Tile).
 	tileRefs, err := tilesMsg.GetMessages(1)
 	if err != nil {
 		return nil, fmt.Errorf("error getting tile refs: %w", err)
@@ -306,7 +306,7 @@ func extractTable(store *tsp.ObjectStore, tableInfo *tsp.IwaObject, position int
 
 			// Parse cells
 			pos := 0
-			for col := 0; col < int(cellCount) && pos < len(cellBuffer); col++ {
+			for col := 0; col < cellCount && pos < len(cellBuffer); col++ {
 				if pos+12 > len(cellBuffer) {
 					break
 				}
@@ -332,7 +332,7 @@ func extractTable(store *tsp.ObjectStore, tableInfo *tsp.IwaObject, position int
 				// Extract cell value
 				cellValue := extractCellValue(int(cellType), flags, cellBuffer[pos+12:pos+12+dataSize], stringMap, richTextMap)
 
-				if int(rowIndex) < rows && col < cols {
+				if rowIndex < rows && col < cols {
 					cells[rowIndex][col] = cellValue
 				}
 
@@ -350,7 +350,7 @@ func extractTable(store *tsp.ObjectStore, tableInfo *tsp.IwaObject, position int
 	}, nil
 }
 
-// buildStringMap builds a map of string IDs to string values from a string table
+// buildStringMap builds a map of string IDs to string values from a string table.
 func buildStringMap(stringTable *tsp.IwaObject) (map[uint32]string, error) {
 	stringMap := make(map[uint32]string)
 
@@ -375,7 +375,7 @@ func buildStringMap(stringTable *tsp.IwaObject) (map[uint32]string, error) {
 	return stringMap, nil
 }
 
-// buildRichTextMap builds a map of rich text IDs to text strings from the rich text table
+// buildRichTextMap builds a map of rich text IDs to text strings from the rich text table.
 func buildRichTextMap(store *tsp.ObjectStore, dataStoreMsg *base.RawMessage) map[uint32]string {
 	richTextMap := make(map[uint32]string)
 
@@ -422,7 +422,7 @@ func buildRichTextMap(store *tsp.ObjectStore, dataStoreMsg *base.RawMessage) map
 			continue
 		}
 
-		// Get storage reference (field 1 in RichTextPayloadArchive)
+		// Get storage reference (field 1 in RichTextPayloadArchive).
 		storageRef, err := rtObj.Message.GetMessage(1)
 		if err != nil || storageRef == nil {
 			continue
@@ -439,7 +439,7 @@ func buildRichTextMap(store *tsp.ObjectStore, dataStoreMsg *base.RawMessage) map
 			continue
 		}
 
-		// Get text from storage (field 3 in StorageArchive)
+		// Get text from storage (field 3 in StorageArchive).
 		texts := storageObj.Message.GetStrings(3)
 		if len(texts) > 0 {
 			richTextMap[uint32(key)] = texts[0]
@@ -449,13 +449,13 @@ func buildRichTextMap(store *tsp.ObjectStore, dataStoreMsg *base.RawMessage) map
 	return richTextMap
 }
 
-// extractCellValue extracts a cell value from cell data
+// extractCellValue extracts a cell value from cell data.
 func extractCellValue(cellType int, flags uint32, data []byte, stringMap map[uint32]string, richTextMap map[uint32]string) string {
 	switch cellType {
 	case cellTypeEmpty:
 		return ""
 	case cellTypeText:
-		// String ID is at offset 0 if STRING_ID flag is set
+		// String ID is at offset 0 if STRING_ID flag is set.
 		if flags&cellFlagStringID != 0 && len(data) >= 4 {
 			stringID := binary.LittleEndian.Uint32(data[0:4])
 			if str, ok := stringMap[stringID]; ok {
@@ -465,7 +465,7 @@ func extractCellValue(cellType int, flags uint32, data []byte, stringMap map[uin
 		}
 		return ""
 	case cellTypeNumber:
-		// Double is at offset 0 if DOUBLE flag is set
+		// Double is at offset 0 if DOUBLE flag is set.
 		if flags&cellFlagDouble != 0 && len(data) >= 8 {
 			bits := binary.LittleEndian.Uint64(data[0:8])
 			value := float64frombits(bits)
@@ -482,9 +482,9 @@ func extractCellValue(cellType int, flags uint32, data []byte, stringMap map[uin
 		}
 		return ""
 	case cellTypeRichText:
-		// Rich text ID is at the offset determined by flags
+		// Rich text ID is at the offset determined by flags.
 		if flags&cellFlagRichID != 0 && len(data) >= 4 {
-			// Calculate offset to rich text ID by summing sizes of preceding flags
+			// Calculate offset to rich text ID by summing sizes of preceding flags.
 			offset := 0
 			for _, fs := range flagSizes {
 				if flags&fs.flag != 0 {
@@ -509,12 +509,12 @@ func extractCellValue(cellType int, flags uint32, data []byte, stringMap map[uin
 	}
 }
 
-// float64frombits converts uint64 bits to float64
+// float64frombits converts uint64 bits to float64.
 func float64frombits(bits uint64) float64 {
 	return math.Float64frombits(bits)
 }
 
-// tableToMarkdown converts a table to markdown format
+// tableToMarkdown converts a table to markdown format.
 func tableToMarkdown(table *Table) string {
 	if table.Rows == 0 || table.Cols == 0 {
 		return ""

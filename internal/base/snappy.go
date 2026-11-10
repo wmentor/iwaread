@@ -48,7 +48,7 @@ func snappyUncompressBlock(input []byte) ([]byte, error) {
 
 		var length int
 		var offset int
-		if kind == 1 {
+		if kind == 1 { //nolint:staticcheck // later.
 			// Copy with 1-byte offset
 			length = int((tag>>2)&0x7) + 4
 			if ip >= inLen {
