@@ -24,7 +24,6 @@ type RawField struct {
 type RawMessage struct {
 	Fields []RawField
 	source []byte
-	dirty  bool
 }
 
 // Parse parses raw protobuf bytes into a RawMessage.
@@ -106,7 +105,7 @@ func (m *RawMessage) GetVarint(no int) (uint64, bool) {
 	if f == nil || f.Wire != WireVarint {
 		return 0, false
 	}
-	return f.Value.(uint64), true
+	return f.Value.(uint64), true //nolint:forcetypeassert // ok.
 }
 
 // GetUint returns the varint as uint (for convenience).
@@ -133,7 +132,7 @@ func (m *RawMessage) GetBytes(no int) ([]byte, bool) {
 	if f == nil || f.Wire != WireBytes {
 		return nil, false
 	}
-	return f.Value.([]byte), true
+	return f.Value.([]byte), true //nolint:forcetypeassert // ok.
 }
 
 // GetString returns the string value of the last field with the given number.
@@ -150,7 +149,7 @@ func (m *RawMessage) GetStrings(no int) []string {
 	var out []string
 	for _, f := range m.Fields {
 		if f.No == no && f.Wire == WireBytes {
-			out = append(out, string(f.Value.([]byte)))
+			out = append(out, string(f.Value.([]byte))) //nolint:forcetypeassert // ok.
 		}
 	}
 	return out
@@ -160,7 +159,7 @@ func (m *RawMessage) GetStrings(no int) []string {
 func (m *RawMessage) GetMessage(no int) (*RawMessage, error) {
 	b, ok := m.GetBytes(no)
 	if !ok {
-		return nil, nil
+		return nil, nil //nolint:nilnil // ok.
 	}
 	return ParseMessage(b)
 }
@@ -170,7 +169,7 @@ func (m *RawMessage) GetMessages(no int) ([]*RawMessage, error) {
 	var out []*RawMessage
 	for _, f := range m.Fields {
 		if f.No == no && f.Wire == WireBytes {
-			sub, err := ParseMessage(f.Value.([]byte))
+			sub, err := ParseMessage(f.Value.([]byte)) //nolint:forcetypeassert // ok.
 			if err != nil {
 				return nil, err
 			}
@@ -186,7 +185,7 @@ func (m *RawMessage) GetFloat(no int) (float32, bool) {
 	if f == nil || f.Wire != WireFixed32 {
 		return 0, false
 	}
-	b := f.Value.([]byte)
+	b := f.Value.([]byte) //nolint:forcetypeassert // ok.
 	return float32(binary.LittleEndian.Uint32(b)), true
 }
 
@@ -196,7 +195,7 @@ func (m *RawMessage) GetDouble(no int) (float64, bool) {
 	if f == nil || f.Wire != WireFixed64 {
 		return 0, false
 	}
-	b := f.Value.([]byte)
+	b := f.Value.([]byte) //nolint:forcetypeassert // ok.
 	return float64(binary.LittleEndian.Uint64(b)), true
 }
 
@@ -207,10 +206,10 @@ func (m *RawMessage) GetPackedVarints(no int) ([]uint64, error) {
 		if f.No != no {
 			continue
 		}
-		if f.Wire == WireVarint {
-			out = append(out, f.Value.(uint64))
+		if f.Wire == WireVarint { //nolint:staticcheck //later.
+			out = append(out, f.Value.(uint64)) //nolint:forcetypeassert // ok.
 		} else if f.Wire == WireBytes {
-			b := f.Value.([]byte)
+			b := f.Value.([]byte) //nolint:forcetypeassert // ok.
 			pos := 0
 			for pos < len(b) {
 				v, newPos, err := ReadUvarint(b, pos)
