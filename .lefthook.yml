@@ -1,0 +1,10 @@
+pre-push:
+  parallel: true
+  commands:
+    check/lint:
+      run: make check/lint
+    check/tidy:
+      run: make check/tidy
+    test/unit:
+      run: make test/unit
+
