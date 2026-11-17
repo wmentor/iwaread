@@ -1,5 +1,27 @@
 # CHANGELOG
 
+## [1.2.0] - 2026-11-17
+
+### 🚀 Features
+
+- Support .numbers file format reading (#19)
+
+### 📚 Documentation
+
+- Structure and capabilities (#17)
+- Add .proto files of .numbers file format (#18)
+- Update readme (#20)
+
+### ⚙️ Miscellaneous Tasks
+
+- Add .lefthook.yml (#16)
+
+### 👥 Contributors
+
+<div align="left" style="padding-left: 20px;">
+<a href="https://github.com/wmentor" data-hovercard-type="user" data-hovercard-url="/users/wmentor/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/wmentor?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@wmentor" title="@wmentor" style="border-radius: 50% !important;"></a> 
+</div><br/><br/>
+
 ## [1.1.0] - 2026-11-11
 
 ### 🚀 Features
