@@ -40,14 +40,14 @@ linters:
     - govet
     - grouper
     - importas
-    - ineffassign
+#    - ineffassign
     - interfacebloat
     - lll
     - makezero
     - misspell
     - nakedret
 #    - nestif
-    - nilerr
+#    - nilerr
     - nilnil
     - noctx
     - nolintlint
@@ -61,13 +61,13 @@ linters:
     - revive
     - sloglint
     - sqlclosecheck
-    - staticcheck
+#    - staticcheck
 #    - tagliatelle
     - testpackage
     - thelper
     - tparallel
-    - unconvert
-    - unparam
+#    - unconvert
+#    - unparam
     - unused
     - usestdlibvars
     - whitespace

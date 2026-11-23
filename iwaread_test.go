@@ -85,3 +85,53 @@ func TestReadNumbersBlank(t *testing.T) {
 		t.Error("expected markdown output to contain '# Table 1' heading")
 	}
 }
+
+func TestReadKeynote(t *testing.T) {
+	// Find a .key fixture file
+	fixturePath := "testdata/test.key"
+	if _, err := os.Stat(fixturePath); os.IsNotExist(err) {
+		t.Skipf("fixture file not found at %s", fixturePath)
+	}
+
+	md, err := ReadKeynote(fixturePath)
+	if err != nil {
+		t.Fatalf("ReadKeynote failed: %v", err)
+	}
+
+	if md == "" {
+		t.Error("expected non-empty markdown output")
+	}
+
+	fmt.Println(md)
+
+	t.Logf("Successfully extracted %d characters of markdown", len(md))
+
+	// Check that we have slide headings
+	if !strings.Contains(md, "## Slide") {
+		t.Error("expected markdown output to contain slide headings")
+	}
+
+	// Check that we have the expected title text from first slide
+	if !strings.Contains(md, "A sample presentation") {
+		t.Error("expected markdown output to contain 'A sample presentation'")
+	}
+
+	// Check that we have the expected body text from first slide
+	if !strings.Contains(md, "For the Apache Tika project") {
+		t.Error("expected markdown output to contain 'For the Apache Tika project'")
+	}
+
+	// Check that we have notes (this file has a note "A nice note")
+	if !strings.Contains(md, "**Notes:**") {
+		t.Error("expected markdown output to contain notes section")
+	}
+
+	if !strings.Contains(md, "A nice note") {
+		t.Error("expected markdown output to contain 'A nice note'")
+	}
+
+	// Check that list items are formatted correctly
+	if !strings.Contains(md, "- Some random text for the sake of testability.") {
+		t.Error("expected markdown output to contain list item with '- ' prefix")
+	}
+}

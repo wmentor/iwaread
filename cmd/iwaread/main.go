@@ -12,7 +12,7 @@ import (
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Fprintf(os.Stderr, "Usage: %s <file.pages|file.numbers>\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage: %s <file.pages|file.numbers|file.key>\n", os.Args[0])
 		os.Exit(1)
 	}
 
@@ -27,6 +27,8 @@ func main() {
 		markdown, err = iwaread.ReadPages(filename)
 	case ".numbers":
 		markdown, err = iwaread.ReadNumbers(filename)
+	case ".key":
+		markdown, err = iwaread.ReadKeynote(filename)
 	default:
 		fmt.Fprintf(os.Stderr, "Unsupported file type: %s\n", ext)
 		os.Exit(1)
