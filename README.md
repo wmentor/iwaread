@@ -2,7 +2,7 @@
 
 <br/>
 
-Go library for reading Apple iWork files (.pages, .numbers) and converting them to markdown.
+Go library for reading Apple iWork files (.pages, .numbers, .key) and converting them to markdown.
 
 ## Summary
 
@@ -13,6 +13,7 @@ Go library for reading Apple iWork files (.pages, .numbers) and converting them 
 
 - Read `.pages` files and convert to markdown
 - Read `.numbers` files and convert to markdown (each table as H1 heading)
+- Read `.key` files and convert to markdown (slides with titles, body text, and speaker notes)
 - Support for headings (Heading 1-6 → #, ##, ###, ...)
 - Support for lists (bulleted → -)
 - Support for hyperlinks
@@ -84,9 +85,33 @@ func main() {
 
 Each table in the Numbers document is rendered as an H1 heading with the table name, followed by the table in markdown format.
 
+### Reading .key files
+
+```go
+package main
+
+import (
+    "fmt"
+    "log"
+    
+    "github.com/wmentor/iwaread"
+)
+
+func main() {
+    markdown, err := iwaread.ReadKeynote("presentation.key")
+    if err != nil {
+        log.Fatal(err)
+    }
+    
+    fmt.Println(markdown)
+}
+```
+
+Each slide in the Keynote presentation is rendered with a heading (slide number and title if available), followed by body text and speaker notes (if any).
+
 ## How It Works
 
-Apple iWork files (.pages, .numbers) are ZIP archives containing:
+Apple iWork files (.pages, .numbers, .key) are ZIP archives containing:
 - IWA files (Snappy-compressed protobuf messages)
 - Metadata and Data directories
 
@@ -95,7 +120,7 @@ The library:
 2. Decodes IWA files (Snappy decompression)
 3. Parses protobuf messages (schema-less parser)
 4. Builds an object graph
-5. Extracts content (text for Pages, tables for Numbers)
+5. Extracts content (text for Pages, tables for Numbers, slides for Keynote)
 6. Converts to markdown
 
 ### Pages Documents
@@ -110,6 +135,14 @@ For .numbers files, the library:
 - Iterates through sheets and their tables
 - Extracts cell data from tile storage
 - Renders each table as an H1 heading with the table name, followed by the table in markdown format
+
+### Keynote Presentations
+
+For .key files, the library:
+- Traverses the slide tree in presentation order
+- Extracts title and body text from placeholders
+- Extracts speaker notes from note archives
+- Renders each slide with its number, title, body text, and notes
 
 ### Universal Style Detection
 
