@@ -1,5 +1,13 @@
 <img src="./docs/images/logo.jpg" width="400px;" style="border-radius:10px;">
 
+---
+
+<br/>
+
+<img src="https://img.shields.io/badge/Go-1.26+-3CB043?style=flat" alt="Go Version"> <img src="https://img.shields.io/github/v/release/wmentor/iwaread?label=Release&color=3CB043&style=flat" alt="Latest Release"> <img src="https://img.shields.io/badge/License-MIT-3CB043?style=flat" alt="MIT License"> <img src="https://img.shields.io/badge/CI-OK-3CB043?style=flat" alt="CI OK"> <img src="https://img.shields.io/badge/CGO-NO-3CB043?style=flat" alt="CGO NO"> <img src="https://img.shields.io/badge/Code%20coverage-45%25-3CB043?style=flat" alt="Code coverage"> <img src="https://img.shields.io/github/stars/wmentor/iwaread?label=Stars&color=3CB043&style=flat" alt="GitHub Stars"> <img src="https://img.shields.io/badge/PRs-welcome-3CB043?style=flat" alt="PRs Welcome">
+
+---
+
 <br/>
 
 Go library for reading Apple iWork files (.pages, .numbers, .key) and converting them to markdown.
@@ -160,7 +168,3 @@ This approach works regardless of document language (English, Russian, etc.).
 - Password-protected documents are not supported
 - Images are not extracted (text only)
 - Some cell types (dates, currency, durations) may show as placeholders
-
-## License
-
-MIT
